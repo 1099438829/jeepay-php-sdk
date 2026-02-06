@@ -4,6 +4,7 @@ namespace Muzi\Jeepay\Support;
 
 use Carbon\Carbon;
 use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use Muzi\Jeepay\Common\JeepayResponse;
 use Muzi\Jeepay\Exceptions\HttpException;
@@ -15,24 +16,42 @@ class JeepayClient
 
     const COMMON_PREFIX = "/api";
 
-    private $baseURL;
-    private $mchNo;
-    private $appId;
-    private $key;
+    protected $baseURL;
+    protected $mchNo;
+    protected $appId;
+    protected $key;
 
-    private $config;
-    private $headers = [];
-    private $fixedParams = [
+    /**
+     * @var ClientInterface
+     */
+    protected $httpClient;
+    
+    protected $headers = [];
+    protected $fixedParams = [
         'signType' => 'MD5',
         'version' => '1.0',
     ];
     
-    public function __construct(string $baseURL, string $mchNo,string $appId,string $key)
+    public function __construct(string $baseURL, string $mchNo, string $appId, string $key)
     {
-        $this->baseURL = $baseURL;
+        $this->baseURL = rtrim($baseURL, '/');
         $this->mchNo = $mchNo;
         $this->appId = $appId;
         $this->key = $key;
+        $this->httpClient = new Client([
+            'base_uri' => $this->baseURL,
+            'timeout'  => 30.0,
+        ]);
+    }
+
+    public function setHttpClient(ClientInterface $client)
+    {
+        $this->httpClient = $client;
+    }
+
+    public function getHttpClient(): ClientInterface
+    {
+        return $this->httpClient;
     }
 
     /**
@@ -62,14 +81,6 @@ class JeepayClient
     }
 
     /**
-     * 生成完整的URL，附带查询参数
-     */
-    private function buildURL(string $url, array $params = []): string
-    {
-        return $params ? $url . '?' . http_build_query($params) : $url;
-    }
-
-    /**
      * 发送HTTP请求
      *
      * @throws HttpException
@@ -77,15 +88,25 @@ class JeepayClient
      */
     private function sendRequest(string $method, string $url, array $data = []): JeepayResponse
     {
-        $client = new Client(['base_uri' => $this->baseURL]);
-        $data = array_merge($data, ['sign' => $this->sign($data, $this->key)]);
-        if ($method === 'GET') {
-            $url = $this->buildURL($url, $data);
+        // 签名
+        $data['sign'] = $this->sign($data, $this->key);
+        
+        $options = [
+            'headers' => $this->headers,
+        ];
+
+        if (strtoupper($method) === 'GET') {
+            $options['query'] = $data;
+        } else {
+            $options['form_params'] = $data;
         }
-        $response = $client->request($method, $url, [
-            'headers'     => $this->headers,
-            'form_params' => $method == 'POST' ? $data : [],
-        ]);
+
+        try {
+            $response = $this->httpClient->request($method, $url, $options);
+        } catch (\Exception $e) {
+            throw new HttpException($e->getMessage(), $e->getCode(), $e);
+        }
+
         if ($response->getStatusCode() !== 200) {
             throw new HttpException("Request failed with status code " . $response->getStatusCode());
         }
@@ -101,7 +122,7 @@ class JeepayClient
         return [
             'mchNo' => $this->mchNo,
             'appId' => $this->appId,
-            'reqTime' => Carbon::now()->getTimestampMs(),
+            'reqTime' => (string) round(microtime(true) * 1000),
         ];
     }
 }

@@ -4,37 +4,44 @@ namespace Muzi\Jeepay\Support;
 
 trait Signature
 {
-
+    /**
+     * 验证签名
+     *
+     * @param array $data
+     * @param string $key
+     * @return bool
+     */
     public function checkSign(array $data, string $key): bool
     {
+        if (!isset($data['sign'])) {
+            return false;
+        }
         $sign = $data['sign'];
         unset($data['sign']);
         return $sign === $this->sign($data, $key);
     }
 
-    public function sign(array $data, string $key)
+    /**
+     * 生成签名
+     *
+     * @param array $data
+     * @param string $key
+     * @return string
+     */
+    public function sign(array $data, string $key): string
     {
         ksort($data);
-        reset($data);
         $md5str = "";
         foreach ($data as $k => $val) {
-            if (strlen($k) && strlen($val)) {
-                $md5str .= $k . "=" . $val . "&";
+            if ($val === null) {
+                continue;
             }
-        }
-        $sign = strtoupper(md5($md5str . "key=" . $key));
-        return $sign;
-    }
-
-    private function toUrlParams($data): string
-    {
-        $buff = "";
-        foreach ($data as $k => $v) {
-            if ($k != "sign" && $v != "" && !is_array($v)) {
-                $buff .= $k . "=" . $v . "&";
+            $strVal = (string)$val;
+            if ($strVal === '') {
+                continue;
             }
+            $md5str .= $k . "=" . $strVal . "&";
         }
-
-        return rtrim($buff, "&");
+        return strtoupper(md5($md5str . "key=" . $key));
     }
 }
