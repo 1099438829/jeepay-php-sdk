@@ -43,8 +43,8 @@ final class Transfer extends JeepayClient
      * @throws JeepayException
      */
     public function transferOrder(
-        string $if_code,
-        string $entry_type,
+        IfCode $if_code,
+        EntryType $entry_type,
         int $amount,
         string $account_no,
         ?string $account_name = null,
@@ -56,8 +56,8 @@ final class Transfer extends JeepayClient
         ?string $ext_param = null
     ): array {
         $params = array_filter([
-            'ifCode' => $if_code->value,
-            'entryType' => $entry_type->value,
+            'ifCode' => $if_code->value ?? '',
+            'entryType' => $entry_type->value ?? '',
             'amount' => $amount,
             'currency' => 'cny',
             'accountNo' => $account_no,
