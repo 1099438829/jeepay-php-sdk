@@ -15,6 +15,38 @@ final class Division extends JeepayClient
     const DIVISION_PREFIX = self::COMMON_PREFIX . '/division';
     const DIVISION_BIND = self::DIVISION_PREFIX . '/receiver/bind';
     const DIVISION_EXEC = self::DIVISION_PREFIX . '/exec';
+    const DIVISION_QUERY = self::DIVISION_PREFIX . '/record/query';
+
+    /**
+     * 查询分账记录
+     *
+     * @param string|null $pay_order_id 支付订单ID
+     * @param string|null $mch_order_no 商户订单号
+     * @param string|null $channel_user_id 渠道用户ID
+     * @return array
+     * @throws GuzzleException
+     * @throws HttpException
+     * @throws JeepayException
+     */
+    public function query(
+        ?string $pay_order_id = null,
+        ?string $mch_order_no = null,
+        ?string $channel_user_id = null
+    ): array {
+        if ($pay_order_id === null && $mch_order_no === null && $channel_user_id === null) {
+            throw new \InvalidArgumentException('At least one of payOrderId, mchOrderNo, or channelUserId is required');
+        }
+
+        $params = array_filter([
+            'payOrderId' => $pay_order_id,
+            'mchOrderNo' => $mch_order_no,
+            'channelUserId' => $channel_user_id,
+        ], function ($value) {
+            return !is_null($value);
+        });
+
+        return $this->postForm(self::DIVISION_QUERY, $params)->toArray();
+    }
 
     /**
      * 绑定接收者

@@ -6,6 +6,7 @@ use Muzi\Jeepay\Request\Pay;
 use Muzi\Jeepay\Request\Refund;
 use Muzi\Jeepay\Request\Transfer;
 use Muzi\Jeepay\Request\Division;
+use Muzi\Jeepay\Request\ChannelUser;
 
 /**
  * Class Jeepay
@@ -15,6 +16,7 @@ use Muzi\Jeepay\Request\Division;
  * @property Refund $refund
  * @property Transfer $transfer
  * @property Division $division
+ * @property ChannelUser $channelUser
  */
 class Jeepay
 {
